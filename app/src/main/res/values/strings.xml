@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">TestField</string>
+	<string name="title_activity_main">MainActivity</string>
+	<string name="hello_world">Hello world!</string>
+
+	<string name="action_settings">settings</string>
+	<string name="history_data">history</string>
+	<string name="repository_name_edit_text">enter repository name</string>
+</resources>
