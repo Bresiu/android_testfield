@@ -38,5 +38,24 @@
 			android:inputType="text"
 			android:hint="@string/repository_name_edit_text"
 			/>
+		<EditText
+			android:id="@+id/email"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:inputType="textEmailAddress"
+			/>
+		<EditText
+			android:id="@+id/password"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:inputType="textPassword"
+			/>
+
+		<Button
+			android:id="@+id/simple_button"
+			android:text="@string/submit"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			/>
 	</LinearLayout>
 </layout>
