@@ -1,8 +1,10 @@
 package com.bresiu.testfield;
 
 import android.databinding.DataBindingUtil;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Looper;
+import android.support.design.widget.TextInputLayout;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -16,6 +18,7 @@ import com.trello.rxlifecycle.components.support.RxAppCompatActivity;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
@@ -25,8 +28,10 @@ public class MainActivity extends RxAppCompatActivity {
 
 	@Bind(R.id.input_text_repository) EditText inputTextRepository;
 	@Bind(R.id.simple_button) Button simpleButton;
-	@Bind(R.id.email) EditText email;
-	@Bind(R.id.password) EditText password;
+	@Bind(R.id.emailInputLayout) TextInputLayout emailInputLayout;
+	@Bind(R.id.passwordInputLayout) TextInputLayout passwordInputLayout;
+	private EditText email;
+	private EditText password;
 
 	private Random random;
 
@@ -39,6 +44,8 @@ public class MainActivity extends RxAppCompatActivity {
 		this.observableList = new ObservableList<>();
 		this.bindDataToLayout();
 		ButterKnife.bind(this);
+		this.email = emailInputLayout.getEditText();
+		this.password = passwordInputLayout.getEditText();
 		this.initRepositorySearch();
 		this.doSomeJob();
 		this.testThread();
@@ -51,11 +58,7 @@ public class MainActivity extends RxAppCompatActivity {
 	}
 
 	private void bindArrayList() throws InterruptedException {
-		this.observableList.getObservable().subscribe(i -> Log.d("TROL", "int: " + i));
-	}
-
-	private void saveToDataBase(String user) {
-		Log.d("TEST", user);
+		this.observableList.getObservable().subscribe();
 	}
 
 	private void testThread() {
@@ -67,49 +70,59 @@ public class MainActivity extends RxAppCompatActivity {
 	}
 
 	private Boolean heavyCalculations(Integer integer) {
-		Log.d("TEST", Thread.currentThread().getName());
+		Log.d("TROL", Thread.currentThread().getName());
 		return true;
 	}
 
 	private void setupEditTextListeners() {
-		Observable<TextViewTextChangeEvent> emailChangeObservable =
-			RxTextView.textChangeEvents(this.email);
-		Observable<TextViewTextChangeEvent> passwordChangeObservable =
-			RxTextView.textChangeEvents(this.password);
+		final Pattern emailPattern = Pattern.compile("^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
+			+ "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$");
 
-		RxView.enabled(this.simpleButton).call(false);
+		Observable<Boolean> emailValid = RxTextView.textChangeEvents(email)
+			.skip(1)
+			.map(TextViewTextChangeEvent::text)
+			.map(t -> emailPattern.matcher(t).matches() || t.length() == 0);
 
-		Observable.combineLatest(emailChangeObservable, passwordChangeObservable,
-			(emailObservable, passwordObservable) -> {
-				boolean emailCheck = this.checkEmailField(emailObservable.text().toString());
-				boolean passwordCheck = passwordObservable.text().length() >= 3;
+		Observable<Boolean> passwordValid = RxTextView.textChangeEvents(password)
+			.skip(1)
+			.map(TextViewTextChangeEvent::text)
+			.map(t -> t.length() > 4 || t.length() == 0);
 
-				return emailCheck && passwordCheck;
-			}).subscribe(aBoolean -> RxView.enabled(this.simpleButton).call(aBoolean));
-	}
+		emailValid.debounce(1000, TimeUnit.MILLISECONDS, AndroidSchedulers.mainThread())
+			.distinctUntilChanged()
+			.doOnNext(b -> {
+				Log.d("TROL", "Email " + (b ? "Valid" : "Invalid"));
+				if (b) {
+					emailInputLayout.setError(null);
+				} else {
+					emailInputLayout.setError("invalid email");
+				}
+			})
+			.map(b -> b ? Color.WHITE : Color.GRAY)
+			.subscribe(email::setTextColor);
 
-	private boolean checkEmailField(String sequence) {
-		boolean length;
-		boolean at;
-		Log.d("TEST", "sequence: " + sequence);
+		passwordValid.debounce(1000, TimeUnit.MILLISECONDS, AndroidSchedulers.mainThread())
+			.distinctUntilChanged()
+			.doOnNext(b -> {
+				Log.d("TROL", "Password " + (b ? "Valid" : "Invalid"));
+				if (b) {
+					passwordInputLayout.setError(null);
+				} else {
+					passwordInputLayout.setError("invalid password");
+				}
+			})
+			.map(b -> b ? Color.WHITE : Color.GRAY)
+			.subscribe(password::setTextColor);
 
-		if (sequence.length() >= 3) {
-			length = true;
-		} else {
-			this.email.setError("email length should be more than 3 characters");
-			length = false;
-		}
-		if (sequence.contains("@")) {
-			at = true;
-		} else {
-			at = false;
-			this.email.setError("email should contains @");
-		}
-		return length && at;
+		Observable<Boolean> registerEnabled =
+			Observable.combineLatest(emailValid, passwordValid, (a, b) -> a && b);
+		registerEnabled.distinctUntilChanged()
+			.doOnNext(b -> Log.d("TROL", "Button " + (b ? "Enabled" : "Disabled")))
+			.subscribe(simpleButton::setEnabled);
 	}
 
 	private void doSomeJob() {
-		RxView.clicks(this.simpleButton).subscribe(o -> Log.d("TEST", "simple button clicked!"));
+		RxView.clicks(this.simpleButton).subscribe(o -> Log.d("TROL", "simple button clicked!"));
 	}
 
 	private void initRepositorySearch() {
@@ -126,26 +139,26 @@ public class MainActivity extends RxAppCompatActivity {
 		return new Observer<TextViewTextChangeEvent>() {
 			@Override
 			public void onCompleted() {
-				Log.d("TEST", "onCompleted");
+				Log.d("TROL", "onCompleted");
 			}
 
 			@Override
 			public void onError(Throwable e) {
-				Log.e("TEST", e.getMessage());
+				Log.e("TROL", e.getMessage());
 			}
 
 			@Override
 			public void onNext(TextViewTextChangeEvent textViewTextChangeEvent) {
-				Log.d("TEST", textViewTextChangeEvent.text().toString());
+				Log.d("TROL", textViewTextChangeEvent.text().toString());
 			}
 		};
 	}
 
 	private void logCurrentThread() {
 		if (this.isCurrentlyOnMainThread()) {
-			Log.d("TEST", "MAIN THREAD:");
+			Log.d("TROL", "MAIN THREAD:");
 		} else {
-			Log.d("TEST", "NOT MAIN THREAD:");
+			Log.d("TROL", "NOT MAIN THREAD:");
 		}
 	}
 

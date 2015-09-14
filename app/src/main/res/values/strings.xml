@@ -8,4 +8,6 @@
 	<string name="history_data">history</string>
 	<string name="repository_name_edit_text">enter repository name</string>
 	<string name="submit">submit</string>
+	<string name="email">Email</string>
+	<string name="password">Password</string>
 </resources>
